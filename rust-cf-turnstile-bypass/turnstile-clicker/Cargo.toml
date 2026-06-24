@@ -1,0 +1,11 @@
+[package]
+name = "turnstile-clicker"
+version = "0.1.0"
+edition = "2021"
+ 
+[dependencies]
+enigo = "0.6.1"
+image = "0.24"
+inputbot = "0.5"
+screenshots = "0.8.10"
+rand = "0.8"

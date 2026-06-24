@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Token Harvester</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: black;
+        }
+        #iframe-farm {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+        }
+        #iframe-farm iframe {
+            position: absolute;
+            border: 1px solid #333;
+            background: black;
+        }
+        #hint {
+            position: fixed;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.45);
+            font: 13px/1 sans-serif;
+            z-index: 9999;
+            pointer-events: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="iframe-farm"></div>
+    <div id="hint">Press <kbd>K</kbd> to spawn a solver instance</div>
+
+    <script>
+        // Set your token server host.
+        const TOKEN_SERVER_HOST = "ws://localhost:8080";
+        
+        // Number of iframes to load on startup.
+        // Set to 1 if you have a system to rotate a proxy on window reloads,
+        // in which case after each token send the window will reload for you so it can rotate.
+        const PRELOAD_IFRAMES = 12;
+
+        // Set your sitekey.
+        const SITEKEY = "";
+
+        window.token_server_host = TOKEN_SERVER_HOST;
+        window.preload_iframes = PRELOAD_IFRAMES;
+        window.sitekey = SITEKEY;
+        
+        let token_server_socket = new WebSocket(TOKEN_SERVER_HOST);
+        token_server_socket.binaryType = "arraybuffer";
+
+        // Index/id of the proxy being used to solve in this window, since solving is limited to per-window/tab.
+        // This solver idx is then sent to your server, which allows for your backend to know which proxy did the work,
+        // which is important if IP checks are made to see if a token redeemer matches the solver are in place.
+        token_server_socket.onopen = function () {
+            token_server_socket.send(new Uint8Array([3]));
+        };
+
+        // Set solver idx on socket response, and start our solvers.
+        token_server_socket.onmessage = function (e) {
+            window.solver_idx = new Uint32Array(e.data)[0];
+            console.log("Solver idx: " + window.solver_idx);
+            start_solvers();
+        };
+
+        let start_solvers = function () {
+            let farm = document.getElementById('iframe-farm');
+            let hint = document.getElementById('hint');
+            let count = 0;
+
+            function layout() {
+                let frames = farm.querySelectorAll('iframe');
+                let n = frames.length;
+                if (n == 0) return;
+
+                let cols = Math.ceil(Math.sqrt(n));
+                let rows = Math.ceil(n / cols);
+                let w = Math.floor(window.innerWidth / cols);
+                let h = Math.floor(window.innerHeight / rows);
+
+                frames.forEach(function (f, i) {
+                    f.style.left = ((i % cols) * w) + 'px';
+                    f.style.top = (Math.floor(i / cols) * h) + 'px';
+                    f.style.width = w + 'px';
+                    f.style.height = h + 'px';
+                });
+            }
+
+            function spawn_iframe() {
+                count++;
+                let f = document.createElement('iframe');
+                f.src = 'solver_iframe.html';
+                f.title = 'Instance ' + count;
+                farm.appendChild(f);
+                layout();
+                setTimeout(layout, 0);
+                if (count == 1) hint.style.display = 'none';
+                console.log('[farm] spawned iframe #' + count);
+            }
+
+            window.addEventListener('keydown', function (e) {
+                if (e.code == 'KeyK') spawn_iframe();
+            });
+
+            for (let i = 0; i < PRELOAD_IFRAMES; i += 1) {
+                spawn_iframe();
+            };
+
+            window.addEventListener('resize', layout);
+        }
+    </script>
+</body>
+</html>
