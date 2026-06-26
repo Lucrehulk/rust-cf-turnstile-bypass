@@ -26,11 +26,12 @@ A proof-of-concept Cloudflare Turnstile bypass system built in Rust. Includes a 
 
 ## How It Works
 
-The bypass is comprised of three main components:
+The bypass is comprised of four main components:
 
 1. **Token Harvester / Turnstile Widget Loader**
 2. **Turnstile Widget Identifier & Clicker**
 3. **Token Server**
+4. **Extensions** (external utilities that aid our solving).
 
 ---
 
