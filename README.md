@@ -81,7 +81,7 @@ Set the `PORT`, and `PROXIES_LIST_LENGTH` values in the config. That's all, asid
 
 | Header | Description |
 |--------|-------------|
-| `0` | Incoming token + solver id from a sender. The server routes it to the registered receiver socket with the fewest acquired tokens (based on total acquired, not taking into account tokens that were already consumed). Structure: <0, ...sender_id_bytes (u16), ...token_bytes>. |
+| `0` | Incoming token + solver id from a sender. The server routes it to the registered receiver socket with the fewest acquired tokens (based on total acquired, not taking into account tokens that were already consumed). Structure: <0, ...sender_id_bytes (u32), ...token_bytes>. |
 | `1` | Register the sending socket as a receiver and initialize its receiver status. Send this packet when designing a system to actually allow your infrastructure to acquire the tokens. |
 | `2` | Request the total token count. The server responds with the current count. |
 | `3` | Request the solver_idx. The server responds with this window's solver_idx. Necessary for knowing which proxy solved a challenge in case there are IP checks in place. |
@@ -90,7 +90,7 @@ Set the `PORT`, and `PROXIES_LIST_LENGTH` values in the config. That's all, asid
 
 | Description |
 |-------------|
-| Incoming token + solver id delivered to a receiver. Structure: <...sender_id_bytes (u16), ...token_bytes>.|
+| Incoming token + solver id delivered to a receiver. Structure: <...sender_id_bytes (u32), ...token_bytes>.|
 | Token count response. Sent directly to the requesting client as u64 LE bytes without a header, since that client only needs this single value and no additional packet types are currently required. |
 | Solver_idx response. Sent directly as u32 LE bytes to the requesting client. |
 
