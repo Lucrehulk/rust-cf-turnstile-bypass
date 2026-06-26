@@ -103,7 +103,7 @@ Set the `PORT`, and `PROXIES_LIST_LENGTH` values in the config. That's all, asid
 
 I would recommend a few browser extensions to maximize solving potential:
 1. A per-window, advanced browser proxy extension that allows fine-grained control over browser level proxies. A good example of this is FoxyProxy. A system that can rotate a proxy list upon window reload is most important to be compatible for multi-proxy solving with this architecture.
-2. A WebRTC api spoofer or blocker. WebRTC can leak your real IP if not careful, so getting a good extension to block this is critical.
+2. A WebRTC API spoofer or blocker. WebRTC can leak your real IP if not careful, so getting a good extension to block this is critical.
 3. An advanced user-agent spoofer. This one isn't all that necessary, but if you're looking to maximize anonymity then you'll likely want one of these. 
 
 ---
