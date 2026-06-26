@@ -96,6 +96,8 @@ Set the `PORT`, and `PROXIES_LIST_LENGTH` values in the config. That's all, asid
 
 *Note these packets dote not have headers, as there is only one packet type sent to each endpoint.*
 
+---
+
 ### 4. Extensions
 
 I would recommend a few browser extensions to maximize solving potential:
