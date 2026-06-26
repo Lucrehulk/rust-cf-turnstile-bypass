@@ -28,12 +28,14 @@
             resolvers.forEach(function (r) { r(v); });
             resolvers = [];
             let bytes = new TextEncoder().encode(v);
-            let pkt = new Uint8Array(bytes.length + 3);
+            let pkt = new Uint8Array(bytes.length + 5);
             // Send the token packet to the token server.
             pkt[0] = 0;
             pkt[1] = window.top.solver_idx & 255;
             pkt[2] = (window.top.solver_idx >> 8) & 255;
-            pkt.set(bytes, 1);
+            pkt[3] = (window.top.solver_idx >> 16) & 255;
+            pkt[4] = (window.top.solver_idx >> 24) & 255;
+            pkt.set(bytes, 5);
             if (token_sender.readyState == 1) {
                 token_sender.send(pkt);
             } else {
