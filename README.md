@@ -43,7 +43,7 @@ The Token Harvester loads the Turnstile widget by spawning multiple iframe-based
 **Setup:**
 
 1. **Configure the files.** The config is in `index.html`:
-   - Set `PRELOAD_IFRAMES` (the number of iframe solvers to load on page start), `TOKEN_SERVER_HOST` (your token server host, obviously), and `PROXY_CONNECT_TIMEOUT` (time for proxy connection to timeout and page to begin reloading). Originally I did just use const SITEKEY which is why that's still declared in the index.html, but after having to change it around consistently it got annoying. So it's set in localStorage now. So set `localStorage.sitekey` (the website's Cloudflare sitekey) in localStorage.
+   - Set `PRELOAD_IFRAMES` (the number of iframe solvers to load on page start) **NOTE: PLEASE KEEP PRELOAD_IFRAMES AT 1. Currently, upon any solve the location reloads. Additionally, multi-iframe solving on a single page has been found to be quite slow. This is all but deprecated as of now but if a feasible solution to tunneling is implemented (as discussed in future plans) it may become useful again.**, `TOKEN_SERVER_HOST` (your token server host, obviously), and `PROXY_CONNECT_TIMEOUT` (time for proxy connection to timeout and page to begin reloading). Originally I did just use const SITEKEY which is why that's still declared in the index.html, but after having to change it around consistently it got annoying. So it's set in localStorage now. So set `localStorage.sitekey` (the website's Cloudflare sitekey) in localStorage.
 
 3. **Set your proxies.**  Set your linesplit list of proxies to `localStorage.proxies`. The proxy extension will connect to a proxy from this list according to the recieved solver idx. Note the proxies list should include the protocol extension protocol://
 
@@ -128,4 +128,7 @@ An automatic page-loader and harvester setup script may be created in order to a
 
 If a feasible solution is found, a way to tunnel individual iframes (hence enhancing multi-proxy solving outside of just different tabs) may be implemented.
 
+## Some images and media of applications
+
+<img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/bd5b88a4-b824-4591-832e-812e254adb68" />
 <img width="1919" height="907" alt="image" src="https://github.com/user-attachments/assets/7e6c9bfb-e720-4c21-a8d6-88b699e5af88" />
