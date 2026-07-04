@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Firefox Proxy Extension",
+  "version": "1.0",
+  "description": "Bridges webpage proxy requests to Firefox's native per-tab proxy API.",
+  "permissions": [
+    "proxy",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

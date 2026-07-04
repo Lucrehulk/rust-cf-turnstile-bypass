@@ -9,7 +9,7 @@ use tokio::sync::{mpsc, Mutex};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
 const PORT: u16 = 8080;
-const PROXIES_LIST_LENGTH: u32 = 250;
+const PROXIES_LIST_LENGTH: u32 = 187;
 
 type Tx = mpsc::UnboundedSender<Message>;
 

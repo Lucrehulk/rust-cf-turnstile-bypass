@@ -21,30 +21,33 @@ A proof-of-concept Cloudflare Turnstile bypass system built in Rust. Includes a 
 - Tunneling multiple proxies through each iframe is not supported. Do note this may potentially be added in the future if a feasible solution is found, though. For now, the only solution for multi-proxy support is to spawn multiple windows, and use a browser extension that enables per-window proxies (e.g. FoxyProxy).
 - Designed for smaller-scale token harvesting, though the token server architecture does support larger-scale operations.
 - Ineffective for general, random web-scraping. Knowing the websites it will be used on is most effective.
+- **Muost ideally used with FireFox.**
 
 ---
 
-## How It Works
+## Components
 
 The bypass is comprised of four main components:
 
 1. **Token Harvester / Turnstile Widget Loader**
 2. **Turnstile Widget Identifier & Clicker**
 3. **Token Server**
-4. **Extensions** (external utilities that aid our solving).
+4. **Extensions**
 
 ---
 
 ### 1. Token Harvester / Turnstile Widget Loader
 
-The Token Harvester loads the Turnstile widget by spawning multiple iframe-based solvers, each pointing at a different Cloudflare site widget. Every solver iframe connects to the token server and forwards any solved tokens to it, and after forwarding a token it also resets the widget and begins solving for another token.
+The Token Harvester loads the Turnstile widget by spawning multiple iframe-based solvers, each pointing at a different Cloudflare site widget. Every solver iframe connects to the token server and forwards any solved tokens to it, and after forwarding a token it also resets the widget and begins solving for another token. Each window will also conect to its respective proxy from the proxy list upon recieving the idx for the proxy from the token server.
 
 **Setup:**
 
-1. **Configure the files.** Configuration is place in `index.html`:
-   - Set `PRELOAD_IFRAMES` (the number of iframe solvers to load on page start), `TOKEN_SERVER_HOST` (your token server host, obviously), and `SITEKEY` (the website's Cloudflare sitekey).
+1. **Configure the files.** The config is in `index.html`:
+   - Set `PRELOAD_IFRAMES` (the number of iframe solvers to load on page start), `TOKEN_SERVER_HOST` (your token server host, obviously), and `PROXY_CONNECT_TIMEOUT` (time for proxy connection to timeout and page to begin reloading). Originally I did just use const SITEKEY which is why that's still declared in the index.html, but after having to change it around consistently it got annoying. So it's set in localStorage now. So set `localStorage.sitekey` (the website's Cloudflare sitekey) in localStorage.
 
-2. **Apply as browser overrides.** Replace the target webpage's main HTML file with `index.html`, and its main JS script with `index.js`. If the site inlines its scripts, you can still override with `index.js` — since `index.html` is also overridden, it will be loaded as a script regardless. If this is not applicable due to say, tricky origin stuff or something of that sort, you can also of course inline the script into the index.html.
+3. **Set your proxies.**  Set your linesplit list of proxies to `localStorage.proxies`. The proxy extension will connect to a proxy from this list according to the recieved solver idx. Note the proxies list should include the protocol extension protocol://
+
+3. **Apply as browser overrides.** Replace the target webpage's main HTML file with `index.html`. 
 
 **Why overrides?**
 
@@ -102,7 +105,8 @@ Set the `PORT`, and `PROXIES_LIST_LENGTH` values in the config. That's all, asid
 ### 4. Extensions
 
 I would recommend a few browser extensions to maximize solving potential:
-1. A per-window, advanced browser proxy extension that allows fine-grained control over browser level proxies. A good example of this is FoxyProxy. A system that can rotate a proxy list upon window reload is most important to be compatible for multi-proxy solving with this architecture.
+
+1. As previously mentioned first of all, you'll need FireFox. The architecture for connecting to proxies was designed with FireFox's API, especially since it allows per-window proxy connections. You'll need to install the `firefox-proxy-extension` attached in this repository, as this provides the API necessary for asynchronous proxy connections, allowing you to await and connect to a proxy before continuing execution.
 2. A WebRTC API spoofer or blocker. WebRTC can leak your real IP if not careful, so getting a good extension to block this is critical.
 3. An advanced user-agent spoofer. This one isn't all that necessary, but if you're looking to maximize anonymity then you'll likely want one of these. 
 
