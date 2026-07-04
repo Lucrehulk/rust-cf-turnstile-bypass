@@ -128,6 +128,8 @@ An automatic page-loader and harvester setup script may be created in order to a
 
 If a feasible solution is found, a way to tunnel individual iframes (hence enhancing multi-proxy solving outside of just different tabs) may be implemented.
 
+---
+
 ## Some Images and Media of Applications
 
 <img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/bd5b88a4-b824-4591-832e-812e254adb68" />
