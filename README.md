@@ -43,7 +43,7 @@ The Token Harvester loads the Turnstile widget by spawning multiple iframe-based
 **Setup:**
 
 1. **Configure the files.** The config is in `index.html`:
-   - Set `PRELOAD_IFRAMES` (the number of iframe solvers to load on page start) **NOTE: PLEASE KEEP PRELOAD_IFRAMES AT 1. Currently, upon any solve the location reloads. Additionally, multi-iframe solving on a single page has been found to be quite slow. This is all but deprecated as of now but if a feasible solution to tunneling is implemented (as discussed in future plans) it may become useful again.**, `TOKEN_SERVER_HOST` (your token server host, obviously), and `PROXY_CONNECT_TIMEOUT` (time for proxy connection to timeout and page to begin reloading). Originally I did just use const SITEKEY which is why that's still declared in the index.html, but after having to change it around consistently it got annoying. So it's set in localStorage now. So set `localStorage.sitekey` (the website's Cloudflare sitekey) in localStorage.
+   - Set `PRELOAD_IFRAMES` (the number of iframe solvers to load on page start) **NOTE: PLEASE KEEP PRELOAD_IFRAMES AT 1. Currently, upon any solve the location reloads. Additionally, multi-iframe solving on a single page has been found to be quite slow. This is all but deprecated as of now but if a feasible solution to tunneling is implemented (as discussed in future plans) it may become useful again.**, `TOKEN_SERVER_HOST` (your token server host, obviously), `PROXY_CONNECT_TIMEOUT` (time for proxy connection to timeout and page to begin reloading), and `USE_PROXY_SOLVING` (boolean to determine if you want to use the multi-proxy solving system). Originally I did just use const SITEKEY which is why that's still declared in the index.html, but after having to change it around consistently it got annoying. So it's set in localStorage now. So set `localStorage.sitekey` (the website's Cloudflare sitekey) in localStorage.
 
 3. **Set your proxies.**  Set your linesplit list of proxies to `localStorage.proxies`. The proxy extension will connect to a proxy from this list according to the recieved solver idx. Note the proxies list should include the protocol extension protocol://
 
@@ -85,7 +85,7 @@ Set the `PORT`, and `PROXIES_LIST_LENGTH` values in the config. That's all, asid
 
 | Header | Description |
 |--------|-------------|
-| `0` | Incoming token + solver id from a sender. The server routes it to the registered receiver socket with the fewest acquired tokens (based on total acquired, not taking into account tokens that were already consumed). Structure: <0, ...sender_id_bytes (u32), ...token_bytes>. |
+| `0` | Incoming token + solver id from a sender. The server routes it to the registered receiver socket with the fewest acquired tokens (based on total acquired, not taking into account tokens that were already consumed). Structure: <0, ...solver_idx_bytes (u32), ...token_bytes>. |
 | `1` | Register the sending socket as a receiver and initialize its receiver status. Send this packet when designing a system to actually allow your infrastructure to acquire the tokens. |
 | `2` | Request the total token count. The server responds with the current count. |
 | `3` | Request the solver_idx. The server responds with this window's solver_idx. Necessary for knowing which proxy solved a challenge in case there are IP checks in place. |
@@ -94,11 +94,11 @@ Set the `PORT`, and `PROXIES_LIST_LENGTH` values in the config. That's all, asid
 
 | Description |
 |-------------|
-| Incoming token + solver id delivered to a receiver. Structure: <...sender_id_bytes (u32), ...token_bytes>.|
+| Incoming token + solver id delivered to a receiver. Structure: <...solver_idx_bytes (u32), ...token_bytes>.|
 | Token count response. Sent directly to the requesting client as u64 LE bytes without a header, since that client only needs this single value and no additional packet types are currently required. |
 | Solver_idx response. Sent directly as u32 LE bytes to the requesting client. |
 
-*Note these packets dote not have headers, as there is only one packet type sent to each endpoint.*
+*Note these packets do not have headers, as there is only one packet type sent to each endpoint.*
 
 ---
 
@@ -120,6 +120,25 @@ I would recommend a few browser extensions to maximize solving potential:
 4. Open your **modified webpage**.
 5. Press **F8** to enable the auto-clicker.
 6. Watch it go.
+
+---
+
+## Putting it all Together: the Entire Process
+
+After the user starts up the process, here's what happens:
+
+For each solver tab:
+
+1. The tab first connects to the token server.
+2. The tab sends the solver_idx request packet (u8<3>) to the server. 
+3. The token server sends back a unique solver_idx, with each request that is handled incrementing the solver_idx value (with modulo across the entire length of the list of course).
+4. Once the solver_idx is recieved, the solver tab attempts to use the firefox-proxy-extension to await and asynchronously connect to a proxy corresponding with the recieved solver_idx.
+5. Once connected, an iframe containing the turnstile widget is loaded. 
+6. The tab does the work provided by the widget and completes it.
+7. If a checkbox challenge is found, the checkbox clicker clicks the checkbox to complete the challenge.
+8. Once the challenge is complete, and the token is recieved, the solver tab sends the result to the server (u8<0, ...solver_idx_bytes, ...token_bytes>). It forwards the solver_idx used and the token. 
+9. Upon completion the page reloads--restarting the process. 
+10. The token server, which has just recieved the token packet from the solver, forwards it to the reciever with the least tokens. Note, as already mentioned, *you'll* need to set up your reciever architecture. You can connect to the token server and send u8<1> to set up a reciever. From there, you'll of course build the system to do what you actually want with the recieved tokens. 
 
 ---
 

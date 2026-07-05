@@ -42,6 +42,9 @@
             // Timeout for proxy to connect, in ms.
             const PROXY_CONNECT_TIMEOUT = 5000;
 
+            // Boolean for if you want to use the multi-proxy system for solving.
+            const USE_PROXY_SOLVING = true;
+
             window.token_server_host = TOKEN_SERVER_HOST;
             window.preload_iframes = PRELOAD_IFRAMES;
             window.sitekey = SITEKEY;
@@ -94,7 +97,7 @@
             token_server_socket.onmessage = async function (e) {
                 window.solver_idx = new Uint32Array(e.data)[0];
                 console.log("Solver idx: " + window.solver_idx);
-                await connect_to_proxy();
+                if (USE_PROXY_SOLVING) connect_to_proxy();
                 start_solvers();
             };
 
