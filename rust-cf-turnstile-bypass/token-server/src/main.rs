@@ -51,6 +51,8 @@ async fn handle_connection(stream: TcpStream, state: Arc<Mutex<State>>) {
         }
     };
 
+    // We need to track and store an ID for each created socket in case we use them as recievers,
+    // in which case we need to access them and delete them.
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
