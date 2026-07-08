@@ -3,10 +3,15 @@ let tab_proxies = {};
 
 let origin_proxies = {};
 
-// Object map for per-tab / per-origin user agent overrides.
+// Object map for per-tab/per-origin user agent overrides.
 let tab_user_agents = {};
 
 let origin_user_agents = {};
+
+// Object map for per-tab/per-origin proxy authentication credentials.
+let tab_proxy_credentials = {};
+
+let origin_proxy_credentials = {};
 
 // Listen to messages posted by the client if we want to set up a proxy.
 browser.runtime.onMessage.addListener((message, sender, send_response) => {
@@ -46,6 +51,21 @@ browser.runtime.onMessage.addListener((message, sender, send_response) => {
                 } else {
                     delete tab_user_agents[tab_id];
                     delete origin_user_agents[tab_origin];
+                }
+
+                // Optional proxy auth, parsed as a "protocol://user:pass@host:port" proxy URL.
+                // If no credentials were passed, clear any previously stored ones for this tab/origin.
+                if (url.username) {
+                    let proxy_credentials = {
+                        username: decodeURIComponent(url.username),
+                        password: decodeURIComponent(url.password)
+                    };
+                    tab_proxy_credentials[tab_id] = proxy_credentials;
+                    origin_proxy_credentials[tab_origin] = proxy_credentials;
+                    console.log(`[Proxy Bridge] Tab ${tab_id} proxy auth credentials stored for ${host_name}:${port_num}`);
+                } else {
+                    delete tab_proxy_credentials[tab_id];
+                    delete origin_proxy_credentials[tab_origin];
                 }
                 
                 console.log(`[Proxy Bridge] Tab ${tab_id} bound to ${proxy_type}://${host_name}:${port_num}`);
@@ -115,6 +135,31 @@ browser.webRequest.onBeforeSendHeaders.addListener(
     ["blocking", "requestHeaders"]
 );
 
+// Answer proxy authentication challenges with any stored credentials, 
+// FireFox has a seperate onAuthRequired listener for this.
+browser.webRequest.onAuthRequired.addListener(
+    (details) => {
+        if (!details.isProxy) return {};
+
+        let proxy_credentials = tab_proxy_credentials[details.tabId];
+
+        if (!proxy_credentials && details.tabId == -1) {
+            let request_origin = details.originUrl ? new URL(details.originUrl).origin : null;
+            if (request_origin && origin_proxy_credentials[request_origin]) {
+                proxy_credentials = origin_proxy_credentials[request_origin];
+            }
+        }
+
+        if (proxy_credentials) {
+            return { authCredentials: proxy_credentials };
+        }
+
+        return {};
+    },
+    { urls: ["<all_urls>"] },
+    ["blocking"]
+);
+
 browser.tabs.onRemoved.addListener((tab_id) => {
     if (tab_proxies[tab_id]) {
         console.log(`[Proxy Bridge] Tab ${tab_id} closed. Clearing proxy mapping.`);
@@ -122,5 +167,9 @@ browser.tabs.onRemoved.addListener((tab_id) => {
     }
     if (tab_user_agents[tab_id]) {
         delete tab_user_agents[tab_id];
+    }
+    // Clear any stored proxy auth credentials for the closed tab.
+    if (tab_proxy_credentials[tab_id]) {
+        delete tab_proxy_credentials[tab_id];
     }
 });
