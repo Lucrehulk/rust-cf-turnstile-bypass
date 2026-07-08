@@ -111,7 +111,7 @@ Extensions allow us to utilize our browser's full API capability to connect prox
 You'll need two key extensions.
 
 1. As previously mentioned first of all, you'll need FireFox. The architecture for connecting to proxies was designed with FireFox's API, especially since it allows per-window proxy connections. You'll need to install the `firefox-proxy-extension` attached in this repository, as this provides the API necessary for asynchronous proxy connections, allowing you to await and connect to a proxy before continuing execution. Additionally, this extension also spoofs the user-agent field of each solver request, which is also done according to the oslver_idx just like the proxy is, so that your proxy can match your custom user-agent.
-2. A WebRTC API spoofer or blocker. WebRTC can leak your real IP if not careful, so getting a good extension to block this is critical. YOu can just look one up online, there are plenty.
+2. A WebRTC API spoofer or blocker. WebRTC can leak your real IP if not careful, so getting a good extension to block this is critical. You can just look one up online, there are plenty.
 
 ---
 
