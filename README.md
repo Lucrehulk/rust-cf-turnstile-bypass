@@ -38,16 +38,18 @@ The bypass is comprised of four main components:
 
 ### 1. Token Harvester / Turnstile Widget Loader
 
-The Token Harvester loads the Turnstile widget by spawning multiple iframe-based solvers, each pointing at a different Cloudflare site widget. Every solver iframe connects to the token server and forwards any solved tokens to it, and after forwarding a token it also resets the widget and begins solving for another token. Each window will also conect to its respective proxy from the proxy list upon recieving the idx for the proxy from the token server.
+The Token Harvester loads the Turnstile widget by spawning multiple iframe-based solvers, each pointing at a different Cloudflare site widget. Every solver iframe connects to the token server and forwards any solved tokens to it, and after forwarding a token it also resets the widget and begins solving for another token. Each window will also conect to its respective proxy from the proxy list upon recieving the idx for the proxy from the token server, plus also spoof the user-agent to its respective user-agent based on the recieved idx.
 
 **Setup:**
 
 1. **Configure the files.** The config is in `index.html`:
    - Set `PRELOAD_IFRAMES` (the number of iframe solvers to load on page start) **NOTE: PLEASE KEEP PRELOAD_IFRAMES AT 1. Currently, upon any solve the location reloads. Additionally, multi-iframe solving on a single page has been found to be quite slow. This is all but deprecated as of now but if a feasible solution to tunneling is implemented (as discussed in future plans) it may become useful again.**, `TOKEN_SERVER_HOST` (your token server host, obviously), `PROXY_CONNECT_TIMEOUT` (time for proxy connection to timeout and page to begin reloading), and `USE_PROXY_SOLVING` (boolean to determine if you want to use the multi-proxy solving system). Originally I did just use const SITEKEY which is why that's still declared in the index.html, but after having to change it around consistently it got annoying. So it's set in localStorage now. So set `localStorage.sitekey` (the website's Cloudflare sitekey) in localStorage.
 
-3. **Set your proxies.**  Set your linesplit list of proxies to `localStorage.proxies`. The proxy extension will connect to a proxy from this list according to the recieved solver idx. Note the proxies list should include the protocol extension protocol://
+2. **Set your proxies.**  Set your linesplit list of proxies to `localStorage.proxies`. The proxy extension will connect to a proxy from this list according to the recieved solver idx. Note the proxies list should include the protocol extension protocol://
 
-3. **Apply as browser overrides.** Replace the target webpage's main HTML file with `index.html`. 
+3. **Set your user-agents.**  Set your linesplit list of user-agents to `localStorage.user_agents`. The proxy extension will ensure requests per solve are spoofed to a user-agent based on the recieved solver idx. You do not need these, if you don't have enough the system will just keep the user-agent you already have, but for maximum anonymity purposes this is good.
+
+4. **Apply as browser overrides.** Replace the target webpage's main HTML file with `index.html`. 
 
 **Why overrides?**
 
@@ -104,11 +106,12 @@ Set the `PORT`, and `PROXIES_LIST_LENGTH` values in the config. That's all, asid
 
 ### 4. Extensions
 
-I would recommend a few browser extensions to maximize solving potential:
+Extensions allow us to utilize our browser's full API capability to connect proxies and spoof user-agents, plus block WebRTC.
 
-1. As previously mentioned first of all, you'll need FireFox. The architecture for connecting to proxies was designed with FireFox's API, especially since it allows per-window proxy connections. You'll need to install the `firefox-proxy-extension` attached in this repository, as this provides the API necessary for asynchronous proxy connections, allowing you to await and connect to a proxy before continuing execution.
-2. A WebRTC API spoofer or blocker. WebRTC can leak your real IP if not careful, so getting a good extension to block this is critical.
-3. An advanced user-agent spoofer. This one isn't all that necessary, but if you're looking to maximize anonymity then you'll likely want one of these. 
+You'll need two key extensions.
+
+1. As previously mentioned first of all, you'll need FireFox. The architecture for connecting to proxies was designed with FireFox's API, especially since it allows per-window proxy connections. You'll need to install the `firefox-proxy-extension` attached in this repository, as this provides the API necessary for asynchronous proxy connections, allowing you to await and connect to a proxy before continuing execution. Additionally, this extension also spoofs the user-agent field of each solver request, which is also done according to the oslver_idx just like the proxy is, so that your proxy can match your custom user-agent.
+2. A WebRTC API spoofer or blocker. WebRTC can leak your real IP if not careful, so getting a good extension to block this is critical. YOu can just look one up online, there are plenty.
 
 ---
 
@@ -132,7 +135,7 @@ For each solver tab:
 1. The tab first connects to the token server.
 2. The tab sends the solver_idx request packet (u8<3>) to the server. 
 3. The token server sends back a unique solver_idx, with each request that is handled incrementing the solver_idx value (with modulo across the entire length of the list of course).
-4. Once the solver_idx is recieved, the solver tab attempts to use the firefox-proxy-extension to await and asynchronously connect to a proxy corresponding with the recieved solver_idx.
+4. Once the solver_idx is recieved, the solver tab attempts to use the firefox-proxy-extension to await and asynchronously connect to a proxy corresponding with the recieved solver_idx, and it also ensures all requests going through this proxy will go through a selected user-agent also based on your solver_idx.
 5. Once connected, an iframe containing the turnstile widget is loaded. 
 6. The tab does the work provided by the widget and completes it.
 7. If a checkbox challenge is found, the checkbox clicker clicks the checkbox to complete the challenge.

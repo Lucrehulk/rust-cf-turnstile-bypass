@@ -5,7 +5,9 @@
   "description": "Bridges webpage proxy requests to Firefox's native per-tab proxy API.",
   "permissions": [
     "proxy",
-    "tabs"
+    "tabs",
+    "webRequest",
+    "webRequestBlocking"
   ],
   "host_permissions": [
     "<all_urls>"

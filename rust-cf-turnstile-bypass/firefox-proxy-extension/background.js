@@ -3,6 +3,11 @@ let tab_proxies = {};
 
 let origin_proxies = {};
 
+// Object map for per-tab / per-origin user agent overrides.
+let tab_user_agents = {};
+
+let origin_user_agents = {};
+
 // Listen to messages posted by the client if we want to set up a proxy.
 browser.runtime.onMessage.addListener((message, sender, send_response) => {
     if (message.action == "setup_proxy" && sender.tab) {
@@ -31,6 +36,17 @@ browser.runtime.onMessage.addListener((message, sender, send_response) => {
 
                 tab_proxies[tab_id] = proxy_config;
                 origin_proxies[tab_origin] = proxy_config;
+
+                // Optional user agent override. If none was passed, clear any
+                // previously stored override so the tab reverts to its real UA.
+                if (message.user_agent) {
+                    tab_user_agents[tab_id] = message.user_agent;
+                    origin_user_agents[tab_origin] = message.user_agent;
+                    console.log(`[Proxy Bridge] Tab ${tab_id} user agent overridden to: ${message.user_agent}`);
+                } else {
+                    delete tab_user_agents[tab_id];
+                    delete origin_user_agents[tab_origin];
+                }
                 
                 console.log(`[Proxy Bridge] Tab ${tab_id} bound to ${proxy_type}://${host_name}:${port_num}`);
                 send_response({ success: true });
@@ -72,9 +88,39 @@ browser.proxy.onError.addListener(error => {
     console.error(`[Proxy Bridge] Network error:`, error.message);
 });
 
+// Rewrite the outgoing User-Agent header for any tab/origin that has an
+// override configured. Tabs without one are left alone and send their real UA.
+browser.webRequest.onBeforeSendHeaders.addListener(
+    (details) => {
+        let ua_override = tab_user_agents[details.tabId];
+
+        if (!ua_override && details.tabId == -1) {
+            let request_origin = details.originUrl ? new URL(details.originUrl).origin : null;
+            if (request_origin && origin_user_agents[request_origin]) {
+                ua_override = origin_user_agents[request_origin];
+            }
+        }
+
+        if (ua_override) {
+            let headers = details.requestHeaders.filter(
+                (header) => header.name.toLowerCase() !== "user-agent"
+            );
+            headers.push({ name: "User-Agent", value: ua_override });
+            return { requestHeaders: headers };
+        }
+
+        return {};
+    },
+    { urls: ["<all_urls>"] },
+    ["blocking", "requestHeaders"]
+);
+
 browser.tabs.onRemoved.addListener((tab_id) => {
     if (tab_proxies[tab_id]) {
         console.log(`[Proxy Bridge] Tab ${tab_id} closed. Clearing proxy mapping.`);
         delete tab_proxies[tab_id];
+    }
+    if (tab_user_agents[tab_id]) {
+        delete tab_user_agents[tab_id];
     }
 });

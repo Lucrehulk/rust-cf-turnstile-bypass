@@ -50,9 +50,12 @@
             window.sitekey = SITEKEY;
 
             let proxies = localStorage.proxies.split(/\r?\n/).map(p => p.trim()).filter(Boolean);
+            let user_agents = localStorage.user_agents.split(/\r?\n/).map(p => p.trim()).filter(Boolean);
 
             async function connect_to_proxy() {
                 let proxy = proxies[window.solver_idx];
+                let user_agent = user_agents[window.solver_idx] ? user_agents[window.solver_idx] : undefined;
+
                 console.log(`Requesting extension to bind tab to proxy: ${proxy}`);
 
                 return new Promise((resolve, reject) => {
@@ -78,7 +81,8 @@
 
                     window.postMessage({
                         type: "SET_TAB_PROXY",
-                        proxy_details: proxy 
+                        proxy_details: proxy,
+                        user_agent: user_agent
                     }, "*");
                 });
             }
@@ -239,13 +243,10 @@
                         },
                         'error-callback': function (code) {
                             console.log('[turnstile] error:', code);
-                            if (typeof window.on_turnstile_error == 'function') window.on_turnstile_error(code);
-                            schedule_retry('error ' + code);
+                            window.top.location.reload();
                         },
                         'expired-callback': function () {
-                            token = null;
-                            console.log('[turnstile] token expired, retrying');
-                            schedule_retry('expired');
+                            window.top.location.reload();
                         }
                     });
                 };

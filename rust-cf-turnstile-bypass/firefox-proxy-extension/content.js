@@ -3,10 +3,11 @@ window.addEventListener("message", (event) => {
     if (event.source != window || !event.data) return;
 
     if (event.data.type == "SET_TAB_PROXY") {
-        // Forward the requested proxy to the background.
+        // Forward the requested proxy (and optional user agent) to the background.
         browser.runtime.sendMessage({
             action: "setup_proxy",
-            proxy_details: event.data.proxy_details
+            proxy_details: event.data.proxy_details,
+            user_agent: event.data.user_agent
         }).then((response) => {
             if (response && response.success) {
                 // Return message to the page telling the client the proxy is reading--async unlocks once recieved,
