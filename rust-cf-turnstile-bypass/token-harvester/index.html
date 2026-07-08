@@ -54,7 +54,9 @@
 
             async function connect_to_proxy() {
                 let proxy = proxies[window.solver_idx];
-                let user_agent = user_agents[window.solver_idx] ? user_agents[window.solver_idx] : undefined;
+                let user_agent = undefined;
+
+                if (user_agents.length != 0) user_agent = user_agents[window.solver_idx % user_agents.length];
 
                 console.log(`Requesting extension to bind tab to proxy: ${proxy}`);
 
