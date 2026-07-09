@@ -21,8 +21,8 @@ A proof-of-concept Cloudflare Turnstile bypass system built in Rust. Includes a 
 - Tunneling multiple proxies through each iframe is not supported. Do note this may potentially be added in the future if a feasible solution is found, though. For now, the only solution for multi-proxy support is to spawn multiple windows, and use a browser extension that enables per-window proxies (e.g. FoxyProxy).
 - Designed for smaller-scale token harvesting, though the token server architecture does support larger-scale operations.
 - Ineffective for general, random web-scraping. Knowing the websites it will be used on is most effective.
-- Multi useragent rotation currently not supported (detected).
-- **Muost ideally used with FireFox.**
+- Multi user-agent rotation currently not supported (detected).
+- **Most ideally used with FireFox.**
 
 ---
 
