@@ -49,7 +49,7 @@ The Token Harvester loads the Turnstile widget by spawning multiple iframe-based
 
 2. **Set your proxies.**  Set your linesplit list of proxies to `localStorage.proxies`. The proxy extension will connect to a proxy from this list according to the recieved solver idx. Note the proxies list should include the protocol extension protocol://
 
-3. **Set your user-agents.**  Set your linesplit list of user-agents to `localStorage.user_agents`. The proxy extension will ensure requests per solve are spoofed to a user-agent based on the recieved solver idx. You do not need these, if you don't have enough the system will just keep the user-agent you already have, but for maximum anonymity purposes this is good.
+3. **Set your user-agents.**  Set your linesplit list of user-agents to `localStorage.user_agents`. The proxy extension will ensure requests per solve are spoofed to a user-agent based on the recieved solver idx. You do not need these, if you don't have enough the system will just keep the user-agent you already have, but for maximum anonymity purposes this is good. **NOTE: currently UAs are detected. Do not use this. User-agents are flagged even after modifying navigator properties and other basic fingerprinting metrics. Even the best user-agent switching extensions fail now. It appears as of 2026 CLoudflare has started matching TLS fingerprinting to UAs, making it difficult to work with. So do not set your user-agent list. This is just here in case a solution to this is presented, and also because this is a PoC and ideally a fully functional spoof would already exist.**
 
 4. **Apply as browser overrides.** Replace the target webpage's main HTML file with `index.html`. 
 
@@ -108,11 +108,11 @@ Set the `PORT`, and `PROXIES_LIST_LENGTH` values in the config. That's all, asid
 
 ### 4. Extensions
 
-Extensions allow us to utilize our browser's full API capability to connect proxies and spoof user-agents, plus block WebRTC.
+Extensions allow us to utilize our browser's full API capability to connect proxies and spoof user-agents (currently detected, so do not use uas), plus block WebRTC.
 
 You'll need two key extensions.
 
-1. As previously mentioned first of all, you'll need FireFox. The architecture for connecting to proxies was designed with FireFox's API, especially since it allows per-window proxy connections. You'll need to install the `firefox-proxy-extension` attached in this repository, as this provides the API necessary for asynchronous proxy connections, allowing you to await and connect to a proxy before continuing execution. Additionally, this extension also spoofs the user-agent field of each solver request, which is also done according to the oslver_idx just like the proxy is, so that your proxy can match your custom user-agent.
+1. As previously mentioned first of all, you'll need FireFox. The architecture for connecting to proxies was designed with FireFox's API, especially since it allows per-window proxy connections. You'll need to install the `firefox-proxy-extension` attached in this repository, as this provides the API necessary for asynchronous proxy connections, allowing you to await and connect to a proxy before continuing execution. Additionally, this extension also spoofs the user-agent field of each solver request, which is also done according to the solver_idx just like the proxy is, so that your proxy can match your custom user-agent.
 2. A WebRTC API spoofer or blocker. WebRTC can leak your real IP if not careful, so getting a good extension to block this is critical. You can just look one up online, there are plenty.
 
 ---
@@ -148,9 +148,19 @@ For each solver tab:
 ---
 
 ## Future Plans (may not be done, but if major updates do occur to this project it will likely be these).
+As previously mentioned, 2026 CF has really amped up their user-agent spoof detection. They now match user-agent reported browser data to even the TLS handshakes you exhibit. A bypass for this is top priority.
+
 An automatic page-loader and harvester setup script may be created in order to aid with multi-proxy solving, as per page loads are currently needed for such.
 
 If a feasible solution is found, a way to tunnel individual iframes (hence enhancing multi-proxy solving outside of just different tabs) may be implemented.
+
+---
+
+## Contributing
+
+---
+
+All contributions are very welcome. If you have a way to improve this project, please share with issues, pull requests, etc.
 
 ---
 
