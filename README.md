@@ -20,11 +20,11 @@ A proof-of-concept Cloudflare Turnstile bypass system built in Rust. Includes a 
 - The solver is **not headless** — a GUI is required.
 - The method relies on a browser with overrides enabled.
 - Uses iframes to create multiple simultaneous solvers.
-- Tunneling multiple proxies through each iframe is not supported. Do note this may potentially be added in the future if a feasible solution is found, though. For now, the only solution for multi-proxy support is to spawn multiple windows, and use a browser extension that enables per-window proxies (e.g. FoxyProxy).
+- Tunneling multiple proxies through each iframe is not supported. Do note this may potentially be added in the future if a feasible solution (some form of advanced tunneling) is found. Note per-window proxying, however, is supported.
 - Designed for smaller-scale token harvesting, though the token server architecture does support larger-scale operations.
 - Ineffective for general, random web-scraping. Knowing the websites it will be used on is most effective.
 - Multi user-agent rotation currently not supported (detected).
-- **Most ideally used with FireFox.**
+- **Requires Firefox for multi-proxy solving. If you want to use a singular IP, then any browser that supports overrides works.**
 
 ---
 
