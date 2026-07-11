@@ -73,7 +73,7 @@ Set the config values described in `main.rs`. That's all, aside from installing 
 
 The clicker identifies Cloudflare Turnstile checkboxes by analyzing pixel RGB values. It searches for pixels matching the characteristic grey ring border of the Turnstile checkbox. Once a candidate pixel is found, it performs a depth-first search (DFS) to verify the pixel forms a closed ring/loop. It then searches inward from all four sides to isolate the whitespace within the border — the actual clickable area. Finally, it dispatches OS-level input events to move the mouse to a point within that region and click.
 
-> **Note:** The F8 toggle exists for good reason. The token harvester page is entirely black and contains nothing that should be falsely detected as a checkbox. However, other pages may produce false positives, so it's recommended to only enable the clicker when the solver page is active.
+> **Note:** The F8 toggle exists just to prevent any potential false positives. Toggle it on when you're on the pages just to avoid false positives (though it is pretty thorough, but just in case).
 
 ---
 
