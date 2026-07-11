@@ -27,11 +27,11 @@ const BORDER_TOLERANCE: u8 = 30;
 const BORDER_BALANCE: u8 = 20;
 // Minimum amount of connected pixels detected within our previous greyscale config parameters that can be used to declare a checkbox border.
 const MIN_BORDER_PIXELS: usize = 50;
-// White interior greyscale target. Sampled from a real checkbox icon: the interior sits at RGB(255, 255, 255).
+// White interior general target pixel color -> RGB(target, target, target).
 const WHITE_TARGET: u8 = 255;
-// White tolerance to allow for anti-aliasing/JPEG softness at the border-to-interior transition.
+// White tolerance.
 const WHITE_TOLERANCE: u8 = 25;
-// The maximum variance between R, G, and B fields for the white area, this ensures we maintain greyscale.
+// White balance.
 const WHITE_BALANCE: u8 = 20;
 
 #[derive(Debug, Clone)]
@@ -210,8 +210,8 @@ fn find_interior(image: &image::RgbaImage, outer: &Rect) -> Option<Rect> {
     // We scan over from the left side of the rectangle to the right until we find where we're no longer at a border,
     // yielding our left inner bound.
     let inner_left = (outer.x..outer.x + outer.width).find(|&x| x < width && !is_border(*image.get_pixel(x, center_y)))?;
-    // Verify that pixel is actually white and not just some other stray non-border color (noise, an icon, text, etc).
-    // If it isn't white, this isn't a checkbox -- abort detection for this candidate.
+    // Verify that this pixel is actually white and not just some other stray non-border color (noise, an icon, text, etc).
+    // If it isn't white, this isn't a checkbox and we abort. We run this for the other sides too--all four sides must have white interiors.
     if !is_white(*image.get_pixel(inner_left, center_y)) { return None };
 
     // We perform the same scan as before, but reverse it, meaning the first white pixel is now the furthest right, 
