@@ -23,10 +23,16 @@ const MAX_INTERIOR_AREA: u32 = 200000;
 const BORDER_TARGET: u8 = 74;
 // Border tolerance to ensure it can still be detected.
 const BORDER_TOLERANCE: u8 = 30;
-// The maximum variance between R, G, and B fields, this ensures we maintain greyscale.
+// The maximum variance between R, G, and B fields for the border, this ensures we maintain greyscale.
 const BORDER_BALANCE: u8 = 20;
 // Minimum amount of connected pixels detected within our previous greyscale config parameters that can be used to declare a checkbox border.
 const MIN_BORDER_PIXELS: usize = 50;
+// White interior greyscale target. Sampled from a real checkbox icon: the interior sits at RGB(255, 255, 255).
+const WHITE_TARGET: u8 = 255;
+// White tolerance to allow for anti-aliasing/JPEG softness at the border-to-interior transition.
+const WHITE_TOLERANCE: u8 = 25;
+// The maximum variance between R, G, and B fields for the white area, this ensures we maintain greyscale.
+const WHITE_BALANCE: u8 = 20;
 
 #[derive(Debug, Clone)]
 pub struct Rect {
@@ -140,6 +146,15 @@ fn is_border(p: image::Rgba<u8>) -> bool {
     spread <= BORDER_BALANCE
 }
 
+// Check if our given RGB color matches a white interior pixel, just like is_border does for the border color.
+fn is_white(p: image::Rgba<u8>) -> bool {
+    let (r, g, b) = (p[0], p[1], p[2]);
+    let near = |ch: u8| (ch as i16 - WHITE_TARGET as i16).unsigned_abs() <= WHITE_TOLERANCE as u16;
+    if !near(r) || !near(g) || !near(b) { return false };
+    let spread = r.max(g).max(b) - r.min(g).min(b);
+    spread <= WHITE_BALANCE
+}
+
 // Solves for and identifies the border outline and pixels by continually branching out and searching for connected border pixels,
 // in a DFS until the path either ends or all pixels have been visited (reconnects).
 fn find_border_outline(
@@ -195,18 +210,24 @@ fn find_interior(image: &image::RgbaImage, outer: &Rect) -> Option<Rect> {
     // We scan over from the left side of the rectangle to the right until we find where we're no longer at a border,
     // yielding our left inner bound.
     let inner_left = (outer.x..outer.x + outer.width).find(|&x| x < width && !is_border(*image.get_pixel(x, center_y)))?;
+    // Verify that pixel is actually white and not just some other stray non-border color (noise, an icon, text, etc).
+    // If it isn't white, this isn't a checkbox -- abort detection for this candidate.
+    if !is_white(*image.get_pixel(inner_left, center_y)) { return None };
 
     // We perform the same scan as before, but reverse it, meaning the first white pixel is now the furthest right, 
     // or hence this is our inner right border.
     let inner_right = (outer.x..outer.x + outer.width).rev().find(|&x| x < width && !is_border(*image.get_pixel(x, center_y)))?;
+    if !is_white(*image.get_pixel(inner_right, center_y)) { return None };
 
     // Applying the same idea to the y-axis, we now scan from the top y all the way to the bottom y, 
     // and our first indice that is white is our inner border at the top.
     let inner_top = (outer.y..outer.y + outer.height).find(|&y| y < height && !is_border(*image.get_pixel(center_x, y)))?;
+    if !is_white(*image.get_pixel(center_x, inner_top)) { return None };
 
     // Finally, to get the bottom border we do the same trick as we did with the right side and reverse the top search,
     // so that the first returned item is now the white pixel closest to the bottom.
     let inner_bottom = (outer.y..outer.y + outer.height).rev().find(|&y| y < height && !is_border(*image.get_pixel(center_x, y)))?;
+    if !is_white(*image.get_pixel(center_x, inner_bottom)) { return None };
 
     Some(Rect {
         x: inner_left,
