@@ -103,7 +103,7 @@
             token_server_socket.onmessage = async function (e) {
                 window.solver_idx = new Uint32Array(e.data)[0];
                 console.log("Solver idx: " + window.solver_idx);
-                if (USE_PROXY_SOLVING) connect_to_proxy();
+                if (USE_PROXY_SOLVING) await connect_to_proxy();
                 start_solvers();
             };
 
