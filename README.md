@@ -174,4 +174,4 @@ https://github.com/user-attachments/assets/dfca651a-e13c-47f7-8d54-80b029a4983b
 <img width="521" height="227" alt="image" src="https://github.com/user-attachments/assets/eeddcd7e-afe5-4084-9f15-40c834cdd2ad" />
 Note: no recievers are available here because I didn't connect anything. This is just to show the token harvesting utilization. You set up your architecture with the recievers.
 
-<img width="1919" height="1027" alt="image" src="https://github.com/user-attachments/assets/69c502b8-d066-4a26-af44-70e2de815904" />
+<img width="1919" height="1027" alt="Screenshot 2026-07-14 145405" src="https://github.com/user-attachments/assets/23aa8c12-f812-4191-abe5-e9ed5b0270b3" />
