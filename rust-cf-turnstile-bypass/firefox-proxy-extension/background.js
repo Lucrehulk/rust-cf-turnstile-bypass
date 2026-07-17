@@ -24,8 +24,8 @@ browser.runtime.onMessage.addListener((message, sender, send_response) => {
             let url = new URL(proxy_string);
             let proxy_type = url.protocol.replace(":", "").toLowerCase();
             
-            // Firefox requires the extension be written as "socks".
-            if (proxy_type == "socks5") proxy_type = "socks";
+            // Firefox requires the extension be written as "socks" for socks proxies.
+            if (proxy_type.includes("socks")) proxy_type = "socks";
 
             let host_name = url.hostname;
             let port_num = parseInt(url.port, 10);
@@ -168,7 +168,6 @@ browser.tabs.onRemoved.addListener((tab_id) => {
     if (tab_user_agents[tab_id]) {
         delete tab_user_agents[tab_id];
     }
-    // Clear any stored proxy auth credentials for the closed tab.
     if (tab_proxy_credentials[tab_id]) {
         delete tab_proxy_credentials[tab_id];
     }
