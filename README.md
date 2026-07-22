@@ -79,32 +79,32 @@ The clicker identifies Cloudflare Turnstile checkboxes by analyzing pixel RGB va
 
 ### 3. Token Server
 
-The Token Server doesn't participate in solving — it stores and manages the tokens produced by the harvester. Solver iframes forward their tokens here as they're solved.
+The Token Server doesn't participate in solving--it routes solved requests to available solvers, and forwards completed tokens back to their respective requesters. Solver iframes forward their tokens here as they're solved.
 
 **Setup:**
 
-Set the `PORT`, and `PROXIES_LIST_LENGTH` values in the config. That's all, aside from dependencies.
+Set the `PORT` value in config. That's all.
 
 **Packet & Protocol Structure:**
 
-*Serverbound (client → server):*
+*All values are little-endian.*
+
+*Serverbound (client -> server):*
 
 | Header | Description |
 |--------|-------------|
-| `0` | Incoming token + solver id from a sender. The server routes it to the registered receiver socket with the fewest acquired tokens (based on total acquired, not taking into account tokens that were already consumed). Structure: <0, ...solver_idx_bytes (u32), ...token_bytes>. |
-| `1` | Register the sending socket as a receiver and initialize its receiver status. Send this packet when designing a system to actually allow your infrastructure to acquire the tokens. |
-| `2` | Request the total token count. The server responds with the current count. |
-| `3` | Request the solver_idx. The server responds with this window's solver_idx. Necessary for knowing which proxy solved a challenge in case there are IP checks in place. |
+| `0` | Incoming token result from a solver. The server routes it back to the specific requester who asked for it by extracting the requester id, then re-adds the solver to the available queue. Structure: <0, ...requester_id_bytes (u32), ...solver_idx_bytes (u32), ...token_bytes>. |
+| `1` | On-demand solve request from a requester. The server pulls the next available solver from the queue and forwards this assignment to them. Structure: <1, ...solver_idx_bytes (u32)>. |
+| `2` | Register the sending socket as a solver. The server appends its socket id to the available solvers queue. Structure: <2>. |
 
-*Clientbound (server → client):*
+*Clientbound (server -> client):*
 
-| Description |
-|-------------|
-| Incoming token + solver id delivered to a receiver. Structure: <...solver_idx_bytes (u32), ...token_bytes>.|
-| Token count response. Sent directly to the requesting client as u64 LE bytes without a header, since that client only needs this single value and no additional packet types are currently required. |
-| Solver_idx response. Sent directly as u32 LE bytes to the requesting client. |
+| Endpoint | Name | Description |
+|----------|------|-------------|
+| Reciever | Token | Incoming token delivered to a requester. Structure: <...solver_idx_bytes, ...token_bytes>. |
+| Solver | Solve Request | Solve task assignment delivered to a solver. Structure: <...solver_idx_bytes (u32), ...requester_id_bytes (u32)>. |
 
-*Note these packets do not have headers, as there is only one packet type sent to each endpoint.*
+*Note that the clientboudn packets do not have headers since each endpoint can only recieve a single packet*
 
 ---
 
@@ -122,7 +122,7 @@ You'll need two key extensions.
 ## Starting It Up
 
 1. Start the **token server**.
-2. Start your backend, token managing system. 
+2. Start your backend, token managing and requesting system. 
 3. Start the **auto-clicker**.
 4. Open your **modified webpage**.
 5. Press **F8** to enable the auto-clicker.
@@ -148,6 +148,36 @@ For each solver tab:
 10. The token server, which has just recieved the token packet from the solver, forwards it to the reciever with the least tokens. Note, as already mentioned, *you'll* need to set up your reciever architecture. You can connect to the token server and send u8<1> to set up a reciever. From there, you'll of course build the system to do what you actually want with the recieved tokens. 
 
 ---
+
+
+## Some Helpers for your Backend
+
+Your backend that actually gets and requests solves for tokens will need to interact with the token server. 
+
+You will need a reference to a proxies txt list. This list should match the one you set at localStorage.proxies on the solver page.
+
+```
+// proxy_idx = literally just the index of your proxy in the proxy list.
+construct_solver_request_packet(proxy_idx) {
+   let packet = new Uint8Array(5);
+   packet[0] = 1;
+   packet[1] = proxy_idx & 255;
+   packet[2] = (proxy_idx >> 8) & 255;
+   packet[3] = (proxy_idx >> 16) & 255;
+   packet[4] = (proxy_idx >> 24) & 255;
+   return packet;
+}
+```
+
+```
+// packet = packet buffer.
+parse_token_response_packet(packet) {
+    let u8 = new Uint8Array(packet);
+    let view = new DataView(packet);
+    let solver_idx = view.getUint32(0, true);
+    return new TextDecoder().decode(u8.subarray(4));
+};
+```
 
 ## Future Plans (may not be done, but if major updates do occur to this project it will likely be these).
 As previously mentioned, 2026 CF has really amped up their user-agent spoof detection. They now match user-agent reported browser data to even the TLS handshakes you exhibit. A bypass for this is top priority.

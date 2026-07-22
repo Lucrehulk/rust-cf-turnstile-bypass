@@ -89,20 +89,20 @@
                 });
             }
 
-            let token_server_socket = new WebSocket(TOKEN_SERVER_HOST);
+            window.token_server_socket = new WebSocket(TOKEN_SERVER_HOST);
             token_server_socket.binaryType = "arraybuffer";
 
-            // Index/id of the proxy being used to solve in this window, since solving is limited to per-window/tab.
-            // This solver idx is then sent to your server, which allows for your backend to know which proxy did the work,
-            // which is important if IP checks are made to see if a token redeemer matches the solver are in place.
             token_server_socket.onopen = function () {
-                token_server_socket.send(new Uint8Array([3]));
+                token_server_socket.send(new Uint8Array([2]));
             };
 
-            // Set solver idx on socket response, and start our solvers.
             token_server_socket.onmessage = async function (e) {
-                window.solver_idx = new Uint32Array(e.data)[0];
+                document.querySelectorAll('iframe').forEach(iframe => iframe.remove());
+                let packet = new Uint32Array(e.data);
+                window.solver_idx = packet[0];
+                window.requester_id = packet[1];
                 console.log("Solver idx: " + window.solver_idx);
+                console.log("Requester id: " + window.requester_id);
                 if (USE_PROXY_SOLVING) await connect_to_proxy();
                 start_solvers();
             };
@@ -164,8 +164,6 @@
                 let max_retries = 10;
                 let retry_delay_ms = 2000;
 
-                let token_sender = new WebSocket(window.top.token_server_host);
-
                 Object.defineProperty(window, 'captcha_token', {
                     configurable: true,
                     get: function () { return token; },
@@ -177,22 +175,19 @@
                         resolvers.forEach(function (r) { r(v); });
                         resolvers = [];
                         let bytes = new TextEncoder().encode(v);
-                        let pkt = new Uint8Array(bytes.length + 5);
+                        let pkt = new Uint8Array(bytes.length + 9);
                         // Send the token packet to the token server.
                         pkt[0] = 0;
-                        pkt[1] = window.top.solver_idx & 255;
-                        pkt[2] = (window.top.solver_idx >> 8) & 255;
-                        pkt[3] = (window.top.solver_idx >> 16) & 255;
-                        pkt[4] = (window.top.solver_idx >> 24) & 255;
-                        pkt.set(bytes, 5);
-                        if (token_sender.readyState == 1) {
-                            token_sender.send(pkt);
-                        } else {
-                            token_sender.onopen = function() {
-                                token_sender.send(pkt);
-                            }
-                        }
-                        window.top.location.reload();
+                        pkt[1] = window.top.requester_id & 255;
+                        pkt[2] = (window.top.requester_id >> 8) & 255;
+                        pkt[3] = (window.top.requester_id >> 16) & 255;
+                        pkt[4] = (window.top.requester_id >> 24) & 255;
+                        pkt[5] = window.top.solver_idx & 255;
+                        pkt[6] = (window.top.solver_idx >> 8) & 255;
+                        pkt[7] = (window.top.solver_idx >> 16) & 255;
+                        pkt[8] = (window.top.solver_idx >> 24) & 255;
+                        pkt.set(bytes, 9);
+                        window.top.token_server_socket.send(pkt);
                     }
                 });
 

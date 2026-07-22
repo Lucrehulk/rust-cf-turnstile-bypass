@@ -1,32 +1,29 @@
 // Token server to recieve, route tokens, and output total acquired tokens.
 
 use futures_util::{SinkExt, StreamExt};
-use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, Mutex};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
 const PORT: u16 = 8080;
-const PROXIES_LIST_LENGTH: u32 = 187;
 
 type Tx = mpsc::UnboundedSender<Message>;
 
-#[derive(Debug)]
-struct ReceiverEntry {
-    tx: Tx,
-    acquired_tokens: usize
-}
-
 #[derive(Debug, Default)]
 struct State {
-    receivers: HashMap<u64, ReceiverEntry>
+    // Active connections.
+    connections: HashMap<u32, Tx>,
+    // Available solvers (not currently solving). 
+    // Note this isn't actually a generic queue structure, 
+    // there is no specific ordered pick from the HashSet.
+    // This doesn't matter for our case as we just want any available solver.
+    available_solvers_queue: HashSet<u32>,
 }
 
-static NEXT_ID: AtomicU64 = AtomicU64::new(0);
-static TOTAL_TOKENS_COUNT: AtomicU64 = AtomicU64::new(0);
-static SOLVER_IDX: AtomicU32 = AtomicU32::new(0);
+static NEXT_ID: AtomicU32 = AtomicU32::new(0);
 
 #[tokio::main]
 async fn main() {
@@ -51,12 +48,15 @@ async fn handle_connection(stream: TcpStream, state: Arc<Mutex<State>>) {
         }
     };
 
-    // We need to track and store an ID for each created socket in case we use them as recievers,
-    // in which case we need to access them and delete them.
+    // Assign socket id and push socket data to the sockets HashMap.
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
     
     let (mut ws_tx, mut ws_rx) = ws_stream.split();
     let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
+    {
+        let mut s = state.lock().await;
+        s.connections.insert(id, tx.clone());
+    }
 
     tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
@@ -73,73 +73,80 @@ async fn handle_connection(stream: TcpStream, state: Arc<Mutex<State>>) {
             _ => continue,
         };
 
-        if raw.is_empty() {
-            continue;
-        }
-
         let header = raw[0];
 
         match header {
-            // Incoming token from a sender, which we route to the receiver with least amount of acquired tokens.
-            // [0, ...solver_idx_bytes, ...token_bytes]
+            // Token result from solver. This token is recieved, 
+            // and forwarded to the requester (reciever) with the associated requester_id.
+            // [0, ...requester_id_bytes, ...solver_idx_bytes ...token_bytes]
             0 => {
-                TOTAL_TOKENS_COUNT.fetch_add(1, Ordering::Relaxed);
-
-                let solver_idx_and_token_bytes = &raw[1..];
-
-                // [...solver_idx_bytes, ...token_bytes].
-                let mut token_packet = Vec::with_capacity(solver_idx_and_token_bytes.len());
-                token_packet.extend_from_slice(solver_idx_and_token_bytes);
+                let mut requester_id_bytes = [0u8; 4];
+                requester_id_bytes.copy_from_slice(&raw[1..5]);
+                let requester_id = u32::from_le_bytes(requester_id_bytes);
 
                 let mut s = state.lock().await;
 
-                // Find the receiver with the least acquired tokens.
-                let best = s.receivers.iter().min_by_key(|(_, entry)| entry.acquired_tokens).map(|(k, _)| *k);
+                // Route the token back to the specific requester who asked for it by looking up its requester id.
+                if let Some(requester_tx) = s.connections.get(&requester_id) {
+                    // Forward the token back to the reciever.
+                    // [...solver_idx_bytes, ...token_bytes]
+                    let mut token_packet = Vec::new();
+                    token_packet.extend_from_slice(&raw[5..9]);
+                    token_packet.extend_from_slice(&raw[9..]);
+                    let _ = requester_tx.send(Message::Binary(token_packet));
+                    println!("[+] Routed token back to requester ID: {}.", requester_id);
+                } else {
+                    println!("[-] Requester ID {} is no longer connected.", requester_id);
+                }
 
-                if let Some(recv_id) = best {
-                    println!("sending new token to socket with ID: {}", recv_id);
-                    if let Some(entry) = s.receivers.get_mut(&recv_id) {
-                        let _ = entry.tx.send(Message::Binary(token_packet));
-                        entry.acquired_tokens += 1;
+                // The solver is now finished. Re-add it to the queue since it is available now.
+                s.available_solvers_queue.insert(id);
+                println!("[+] Solver {} re-added to queue. Total available: {}.", id, s.available_solvers_queue.len());
+            }
+
+            // On demand solve request from a requester.
+            // This will forward our request for a solve to the next available solver in queue.
+            // [1, ...solver_idx_bytes]
+            1 => {
+                let mut s = state.lock().await;
+                
+                let solver_id_opt = s.available_solvers_queue.iter().next().copied();
+
+                if let Some(solver_id) = solver_id_opt {
+                    // Remove this solver now as it is occupied.
+                    s.available_solvers_queue.remove(&solver_id);
+
+                    if let Some(solver_tx) = s.connections.get(&solver_id) {
+                        // [...solver_idx_bytes, ...requester_id_bytes]
+                        let mut forward_packet = Vec::new();
+                        forward_packet.extend_from_slice(&raw[1..]);
+                        forward_packet.extend_from_slice(&id.to_le_bytes());
+
+                        let _ = solver_tx.send(Message::Binary(forward_packet));
+                        println!("[+] Forwarded on-demand request from {} to solver {}.", id, solver_id);
                     }
                 } else {
-                    eprintln!("[-] No receivers available to route token to");
+                    println!("[-] No solvers available in the queue to handle request from {}.", id);
                 }
             }
 
-            // Register this socket as a receiver.
-            // [1]
-            1 => {
-                let mut s = state.lock().await;
-                s.receivers.insert(id, ReceiverEntry { tx: tx.clone(), acquired_tokens: 0 });
-                println!("[+] Set new receiver. Total recievers: {}", s.receivers.len());
-            }
-
-            // Token count request. Send total acquired tokens back to requester.
+            // Register this socket as a solver, and append its id to the available_solvers_queue.
             // [2]
             2 => {
-                let mut total_tokens_packet = Vec::new();
-                total_tokens_packet.extend_from_slice(&TOTAL_TOKENS_COUNT.load(Ordering::Relaxed).to_le_bytes());
-                let _ = tx.send(Message::binary(total_tokens_packet));
-                println!("[+] Total tokens count request packet recieved. Sent back the total tokens count.");
-            }
-
-            // Solver idx request packet. Used by solvers to know which proxy index they're working with. Also increments and modulos the idx for next time it is accessed.
-            // [3]
-            3 => {
-                let mut solver_idx_packet = Vec::new();
-                let solver_idx = SOLVER_IDX.fetch_add(1, Ordering::Relaxed) % PROXIES_LIST_LENGTH;
-                solver_idx_packet.extend_from_slice(&solver_idx.to_le_bytes());
-                let _ = tx.send(Message::binary(solver_idx_packet));
-                println!("[+] Solver idx request packet recieved. Sending back solver idx: {}.", solver_idx);
+                let mut s = state.lock().await;
+                s.available_solvers_queue.insert(id);
+                println!("[+] Solver {} added to queue. Total available: {}.", id, s.available_solvers_queue.len());
             }
 
             _ => {
-                eprintln!("Unknown header byte: {}", header);
+                eprintln!("Unknown header byte: {} from socket {}.", header, id);
             }
         }
     }
 
+    // Disconnect socket and clear data.
     let mut s = state.lock().await;
-    s.receivers.remove(&id);
+    s.connections.remove(&id);
+    s.available_solvers_queue.remove(&id);
+    println!("[-] Socket {} disconnected.", id);
 }
