@@ -126,6 +126,9 @@ async fn handle_connection(stream: TcpStream, state: Arc<Mutex<State>>) {
                         println!("[+] Forwarded on-demand request from {} to solver {}.", id, solver_id);
                     }
                 } else {
+                    // Indicate that this solver request couldn't go through.
+                    // [0]
+                     let _ = tx.send(Message::binary(vec![0]));
                     println!("[-] No solvers available in the queue to handle request from {}.", id);
                 }
             }
