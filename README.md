@@ -12,7 +12,7 @@ A proof-of-concept Cloudflare Turnstile bypass system built in Rust. Includes a 
 - Method is generally effective when you know the website you want to apply it to beforehand.
 - The method is relatively firm and not as easy to patch as other bypasses, as it relies on overriding pages to avoid any policies like CORs or any fingerprinting, and the checkbox identifier will work as long as Cloudflare does not drastically change the UI of the widget itself.
 - Easy to use and setup, especially compared to certain other bypasses.
-- This method has a far higher success rate than any other standard method. It quite literally has held 100% success (not a singular fail) as of July 10, 2026 (after thousands of solves). 
+- This method has a far higher success rate than any standard method (near perfect, if not perfect).
 - Because this method uses standard Mozilla Firefox, the entire solving process comes off as legitimate to Cloudflare.
 
 ## Caveats
