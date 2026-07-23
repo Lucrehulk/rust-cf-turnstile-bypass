@@ -139,14 +139,27 @@ You will need a reference to a proxies txt list. This list should match the one 
 
 ```
 // proxy_idx = literally just the index of your proxy in the proxy list.
-construct_solver_request_packet(proxy_idx) {
-   let packet = new Uint8Array(5);
+// fields = object, { name: value, name2: value2, ... namen: valuen }. Names and values are strings.
+construct_solver_request_packet(proxy_idx, fields = {}) {
+   let packet = Array(5);
    packet[0] = 1;
    packet[1] = proxy_idx & 255;
    packet[2] = (proxy_idx >> 8) & 255;
    packet[3] = (proxy_idx >> 16) & 255;
    packet[4] = (proxy_idx >> 24) & 255;
-   return packet;
+   let encoder = new TextEncoder();
+   for (let field_name in fields) {
+         let field_value = fields[field_name];
+         let field_name_bytes = encoder.encode(field_name);
+         let field_value_bytes = encoder.encode(field_value);
+         let field_name_len = field_name_bytes.length;
+         let field_value_len = field_value_bytes.length;
+         packet.push(field_name_len);
+         packet.push(...field_name_bytes);
+         packet.push(field_value_len);
+         packet.push(...field_value_bytes);
+   }
+   return new Uint8Array(packet);
 }
 ```
 
