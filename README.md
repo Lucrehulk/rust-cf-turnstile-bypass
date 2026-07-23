@@ -137,6 +137,8 @@ Your backend that actually gets and requests solves for tokens will need to inte
 
 You will need a reference to a proxies txt list. This list should match the one you set at localStorage.proxies on the solver page.
 
+For any turnstile render call custom fields, such as "cData" or "action" as previously mentioned, you'll need to figure out how they are generated for your target, and recreate the logic to how these fields are generated so that you can pass them into your solve request packet. "action" is usually a hardcoded string, but "cData" is often used as an individual ID/verification field. In short, ensure all fields of the turnstile render call match.
+
 ```
 // proxy_idx = literally just the index of your proxy in the proxy list.
 // fields = object, { name: value, name2: value2, ... namen: valuen }. Names and values are strings.
