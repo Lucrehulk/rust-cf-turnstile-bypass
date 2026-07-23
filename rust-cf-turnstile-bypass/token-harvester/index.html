@@ -66,10 +66,10 @@
                         console.error("Proxy connection timed out after 5 seconds. Reloading...");
                         let pkt = new Uint8Array(5);
                         pkt[0] = 0;
-                        pkt[1] = window.top.requester_id & 255;
-                        pkt[2] = (window.top.requester_id >> 8) & 255;
-                        pkt[3] = (window.top.requester_id >> 16) & 255;
-                        pkt[4] = (window.top.requester_id >> 24) & 255;
+                        pkt[1] = window.requester_id & 255;
+                        pkt[2] = (window.requester_id >> 8) & 255;
+                        pkt[3] = (window.requester_id >> 16) & 255;
+                        pkt[4] = (window.requester_id >> 24) & 255;
                         window.token_server_socket.send(pkt);
                     }, PROXY_CONNECT_TIMEOUT);
 
@@ -97,9 +97,14 @@
 
             document.addEventListener("keydown", async function (e) {
                 if (e.code == "KeyK") {
-                    document.querySelectorAll('iframe').forEach(iframe => iframe.remove());
-                    if (USE_PROXY_SOLVING) await connect_to_proxy();
-                    start_solvers();
+                    let pkt = new Uint8Array(5);
+                    pkt[0] = 0;
+                    pkt[1] = window.requester_id & 255;
+                    pkt[2] = (window.requester_id >> 8) & 255;
+                    pkt[3] = (window.requester_id >> 16) & 255;
+                    pkt[4] = (window.requester_id >> 24) & 255;
+                    window.token_server_socket.send(pkt);
+                    location.reload();
                 }
             });
 
