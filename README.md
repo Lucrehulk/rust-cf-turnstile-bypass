@@ -142,7 +142,7 @@ For any turnstile render call custom fields, such as "cData" or "action" as prev
 ```
 // proxy_idx = literally just the index of your proxy in the proxy list.
 // fields = object, { name: value, name2: value2, ... namen: valuen }. Names and values are strings.
-construct_solver_request_packet(proxy_idx, fields = {}) {
+function construct_solver_request_packet(proxy_idx, fields = {}) {
    let packet = Array(5);
    packet[0] = 1;
    packet[1] = proxy_idx & 255;
@@ -162,12 +162,12 @@ construct_solver_request_packet(proxy_idx, fields = {}) {
          packet.push(...field_value_bytes);
    }
    return new Uint8Array(packet);
-}
+};
 ```
 
 ```
 // packet = packet buffer.
-parse_token_response_packet(packet) {
+function parse_token_response_packet(packet) {
     let u8 = new Uint8Array(packet);
     let view = new DataView(packet);
     let solver_idx = view.getUint32(0, true);
