@@ -116,6 +116,7 @@
                 };
                 console.log("Solver idx: " + window.solver_idx);
                 console.log("Requester id: " + window.requester_id);
+                console.log("Extra render call fields: ", window.extra_cf_turnstile_render_fields);
                 if (USE_PROXY_SOLVING) await connect_to_proxy();
                 start_solvers();
             };
