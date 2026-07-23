@@ -96,7 +96,7 @@ async fn handle_connection(stream: TcpStream, state: Arc<Mutex<State>>) {
                     
                     // If the solve failed, there will be no token bytes in the packet,
                     // and thus we send no token bytes to the reciever.
-                    if token_packet.len() > 9 {
+                    if raw.len() > 9 {
                         token_packet.extend_from_slice(&raw[9..]);
                     }
 
