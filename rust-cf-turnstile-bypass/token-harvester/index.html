@@ -98,9 +98,22 @@
 
             token_server_socket.onmessage = async function (e) {
                 document.querySelectorAll('iframe').forEach(iframe => iframe.remove());
-                let packet = new Uint32Array(e.data);
-                window.solver_idx = packet[0];
-                window.requester_id = packet[1];
+                let packet = new DataView(e.data);
+                let packet_u8 = new Uint8Array(e.data);
+                window.solver_idx = packet.getUint32(0, true);
+                window.requester_id = packet.getUint32(4, true);
+                window.extra_cf_turnstile_render_fields = {};
+                let ptr = 8;
+                let decoder = new TextDecoder();
+                while (ptr < packet_u8.length) {
+                    let field_name_length = packet_u8[ptr++];
+                    let field_name = decoder.decode(packet_u8.slice(ptr, ptr + field_name_length));
+                    ptr = ptr + field_name_length;
+                    let field_value_length = packet_u8[ptr++];
+                    let field_value = decoder.decode(packet_u8.slice(ptr, ptr + field_value_length));
+                    ptr = ptr + field_value_length;
+                    window.extra_cf_turnstile_render_fields[field_name] = field_value;
+                };
                 console.log("Solver idx: " + window.solver_idx);
                 console.log("Requester id: " + window.requester_id);
                 if (USE_PROXY_SOLVING) await connect_to_proxy();
@@ -231,7 +244,7 @@
 
                     container.innerHTML = '';
 
-                    window.turnstile.render(container, {
+                    let cf_turnstile_render_fields = {
                         sitekey: window.top.sitekey,
                         appearance: 'always',
                         callback: function (t) {
@@ -245,7 +258,13 @@
                         'expired-callback': function () {
                             window.top.location.reload();
                         }
-                    });
+                    };
+
+                    for (let field in window.top.extra_cf_turnstile_render_fields) {
+                        cf_turnstile_render_fields[field] = window.top.extra_cf_turnstile_render_fields[field];
+                    };
+
+                    window.turnstile.render(container, cf_turnstile_render_fields);
                 };
             })();
         <\/script>

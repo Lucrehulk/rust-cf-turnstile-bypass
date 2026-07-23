@@ -117,10 +117,14 @@ async fn handle_connection(stream: TcpStream, state: Arc<Mutex<State>>) {
                     s.available_solvers_queue.remove(&solver_id);
 
                     if let Some(solver_tx) = s.connections.get(&solver_id) {
-                        // [...solver_idx_bytes, ...requester_id_bytes]
+                        // [...solver_idx_bytes, ...requester_id_bytes, ...(field_name_len, ...field_name_bytes, field_value_len, ...field_value_bytes)]
                         let mut forward_packet = Vec::new();
-                        forward_packet.extend_from_slice(&raw[1..]);
+                        forward_packet.extend_from_slice(&raw[1..5]);
                         forward_packet.extend_from_slice(&id.to_le_bytes());
+                        
+                        if raw.len() > 5 {
+                            forward_packet.extend_from_slice(&raw[5..]);
+                        }
 
                         let _ = solver_tx.send(Message::Binary(forward_packet));
                         println!("[+] Forwarded on-demand request from {} to solver {}.", id, solver_id);
