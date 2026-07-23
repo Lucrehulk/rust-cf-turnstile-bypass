@@ -64,7 +64,13 @@
                     // Set a timeout to reload the page if connection fails. This way we move onto the next solver proxy.
                     let timeout_id = setTimeout(() => {
                         console.error("Proxy connection timed out after 5 seconds. Reloading...");
-                        window.location.reload();
+                        let pkt = new Uint8Array(5);
+                        pkt[0] = 0;
+                        pkt[1] = window.top.requester_id & 255;
+                        pkt[2] = (window.top.requester_id >> 8) & 255;
+                        pkt[3] = (window.top.requester_id >> 16) & 255;
+                        pkt[4] = (window.top.requester_id >> 24) & 255;
+                        window.token_server_socket.send(pkt);
                     }, PROXY_CONNECT_TIMEOUT);
 
                     let proxy_listener = function(event) {
@@ -88,6 +94,14 @@
                     }, "*");
                 });
             }
+
+            document.addEventListener("keydown", async function (e) {
+                if (e.code == "KeyK") {
+                    document.querySelectorAll('iframe').forEach(iframe => iframe.remove());
+                    if (USE_PROXY_SOLVING) await connect_to_proxy();
+                    start_solvers();
+                }
+            });
 
             window.token_server_socket = new WebSocket(TOKEN_SERVER_HOST);
             token_server_socket.binaryType = "arraybuffer";
@@ -254,10 +268,22 @@
                         },
                         'error-callback': function (code) {
                             console.log('[turnstile] error:', code);
-                            window.top.location.reload();
+                            let pkt = new Uint8Array(5);
+                            pkt[0] = 0;
+                            pkt[1] = window.top.requester_id & 255;
+                            pkt[2] = (window.top.requester_id >> 8) & 255;
+                            pkt[3] = (window.top.requester_id >> 16) & 255;
+                            pkt[4] = (window.top.requester_id >> 24) & 255;
+                            window.top.token_server_socket.send(pkt);
                         },
                         'expired-callback': function () {
-                            window.top.location.reload();
+                            let pkt = new Uint8Array(5);
+                            pkt[0] = 0;
+                            pkt[1] = window.top.requester_id & 255;
+                            pkt[2] = (window.top.requester_id >> 8) & 255;
+                            pkt[3] = (window.top.requester_id >> 16) & 255;
+                            pkt[4] = (window.top.requester_id >> 24) & 255;
+                            window.top.token_server_socket.send(pkt);
                         }
                     };
 

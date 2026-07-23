@@ -79,6 +79,7 @@ async fn handle_connection(stream: TcpStream, state: Arc<Mutex<State>>) {
             // Token result from solver. This token is recieved, 
             // and forwarded to the requester (reciever) with the associated requester_id.
             // [0, ...requester_id_bytes, ...solver_idx_bytes ...token_bytes]
+            // If the solve failed, there will be no token bytes in this packet.
             0 => {
                 let mut requester_id_bytes = [0u8; 4];
                 requester_id_bytes.copy_from_slice(&raw[1..5]);
@@ -92,7 +93,13 @@ async fn handle_connection(stream: TcpStream, state: Arc<Mutex<State>>) {
                     // [...solver_idx_bytes, ...token_bytes]
                     let mut token_packet = Vec::new();
                     token_packet.extend_from_slice(&raw[5..9]);
-                    token_packet.extend_from_slice(&raw[9..]);
+                    
+                    // If the solve failed, there will be no token bytes in the packet,
+                    // and thus we send no token bytes to the reciever.
+                    if token_packet.len() > 9 {
+                        token_packet.extend_from_slice(&raw[9..]);
+                    }
+
                     let _ = requester_tx.send(Message::Binary(token_packet));
                     println!("[+] Routed token back to requester ID: {}.", requester_id);
                 } else {

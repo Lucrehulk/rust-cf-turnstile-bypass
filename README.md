@@ -93,7 +93,7 @@ Set the `PORT` value in config. That's all.
 
 | Header | Description |
 |--------|-------------|
-| `0` | Incoming token result from a solver. The server routes it back to the specific requester who asked for it by extracting the requester id, then re-adds the solver to the available queue. Structure: <0, ...requester_id_bytes (u32), ...solver_idx_bytes (u32), ...token_bytes>. |
+| `0` | Incoming token result from a solver. The server routes it back to the specific requester who asked for it by extracting the requester id, then re-adds the solver to the available queue. Structure: <0, ...requester_id_bytes (u32), ...solver_idx_bytes (u32), ...token_bytes>. If the solver failed to get a token, then there are no token bytes. |
 | `1` | On-demand solve request from a requester. The server pulls the next available solver from the queue and forwards this assignment to them. Also note, the "render" function call for turnstile, which initializes the widget, can take in special fields and extra data, such as "action", or "cdata". To counter this, you may also specify field data for these in this packet, as shown in the provided structure. These fields will then be passed into the render call the solver makes. Structure: <1, ...solver_idx_bytes (u32), ...(field_name_len (u8), ...field_name_bytes, field_value_len (u8), ...field_value_bytes)>. |
 | `2` | Register the sending socket as a solver. The server appends its socket id to the available solvers queue. Structure: <2>. |
 
@@ -101,8 +101,8 @@ Set the `PORT` value in config. That's all.
 
 | Endpoint | Name | Description |
 |----------|------|-------------|
-| Reciever | Token | Incoming token delivered to a requester. Structure: <...solver_idx_bytes (u32), ...token_bytes>. |
-| Reciever | Solvers Unavailable | A request made by this reciever to solve a token couldn't be executed, as all solvers were occupied at the time the solve was requested. Wait until one becomes available (you get the result from one back). Structure: <0>. |
+| Reciever | Token | Incoming token delivered to a requester. Structure: <...solver_idx_bytes (u32), ...token_bytes>. If the solver failed to get a token, then there are no token bytes. |
+| Reciever | Solve Failed | A request made by a solver could not be complete for one of the following reasons: challenge failed, proxy didn't connect, or there were no solvers available when the request was made. Structure: <0>. |
 | Solver | Solve Request | Solve a turnstile widget request that is delivered to a solver. Structure: <...solver_idx_bytes (u32), ...requester_id_bytes (u32), ...(field_name_len (u8), ...field_name_bytes, field_value_len (u8), ...field_value_bytes)>. |
 
 *Note that the clientbound packets do not have headers since each endpoint recieves few, easily disceranble packets. Recievers recieve a packet of only length 1 (Solvers Unavailable), or the token packet itself. The solver can only recieve a solve request.*
@@ -171,7 +171,12 @@ function parse_token_response_packet(packet) {
     let u8 = new Uint8Array(packet);
     let view = new DataView(packet);
     let solver_idx = view.getUint32(0, true);
-    return [solver_idx, new TextDecoder().decode(u8.subarray(4))];
+    let token = undefined;
+    if (packet.length > 4) {
+      let u8 = new Uint8Array(packet);
+      token = new TextDecoder().decode(u8.subarray(4));
+    }
+    return [solver_idx, token];
 };
 ```
 
