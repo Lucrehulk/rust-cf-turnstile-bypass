@@ -101,9 +101,9 @@ Set the `PORT` value in config. That's all.
 
 | Endpoint | Name | Description |
 |----------|------|-------------|
-| Reciever | Token | Incoming token delivered to a requester. Structure: <...solver_idx_bytes, ...token_bytes>. |
+| Reciever | Token | Incoming token delivered to a requester. Structure: <...solver_idx_bytes (u32), ...token_bytes>. |
 | Reciever | Solvers Unavailable | A request made by this reciever to solve a token couldn't be executed, as all solvers were occupied at the time the solve was requested. Wait until one becomes available (you get the result from one back). Structure: <0>. |
-| Solver | Solve Request | Solve task assignment delivered to a solver. Structure: <...solver_idx_bytes (u32), ...requester_id_bytes (u32)>. |
+| Solver | Solve Request | Solve a turnstile widget request that is delivered to a solver. Structure: <...solver_idx_bytes (u32), ...requester_id_bytes (u32)>. |
 
 *Note that the clientbound packets do not have headers since each endpoint recieves few, easily disceranble packets. Recievers recieve a packet of only length 1 (Solvers Unavailable), or the token packet itself. The solver can only recieve a solve request.*
 
