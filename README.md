@@ -102,7 +102,7 @@ Set the `PORT` value in config. That's all.
 | Endpoint | Name | Description |
 |----------|------|-------------|
 | Reciever | Token | Incoming token delivered to a requester. Structure: <...solver_idx_bytes (u32), ...token_bytes>. If the solver failed to get a token, then there are no token bytes. |
-| Reciever | Solve Failed | A request made by a solver could not be complete for one of the following reasons: challenge failed, proxy didn't connect, or there were no solvers available when the request was made. Structure: <0>. |
+| Reciever | Solvers Unavailable | A request made by a solver could not be completed because no solvers were available to accept it. Structure: <0>. |
 | Solver | Solve Request | Solve a turnstile widget request that is delivered to a solver. Structure: <...solver_idx_bytes (u32), ...requester_id_bytes (u32), ...(field_name_len (u8), ...field_name_bytes, field_value_len (u8), ...field_value_bytes)>. |
 
 *Note that the clientbound packets do not have headers since each endpoint recieves few, easily disceranble packets. Recievers recieve a packet of only length 1 (Solvers Unavailable), or the token packet itself. The solver can only recieve a solve request.*
