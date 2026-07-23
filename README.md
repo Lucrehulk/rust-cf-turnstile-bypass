@@ -168,7 +168,6 @@ function construct_solver_request_packet(proxy_idx, fields = {}) {
 ```
 // packet = packet buffer.
 function parse_token_response_packet(packet) {
-    let u8 = new Uint8Array(packet);
     let view = new DataView(packet);
     let solver_idx = view.getUint32(0, true);
     let token = undefined;
