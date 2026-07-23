@@ -32,8 +32,7 @@
             const TOKEN_SERVER_HOST = "ws://localhost:8080";
             
             // Number of iframes to load on startup.
-            // Set to 1 if you have a system to rotate a proxy on window reloads,
-            // in which case after each token send the window will reload for you so it can rotate.
+            // Keep at one for now. This is deprecated.
             const PRELOAD_IFRAMES = 1;
 
             // Set your sitekey. Initially was a set const here but changed it into a localStorage value.
@@ -61,9 +60,8 @@
                 console.log(`Requesting extension to bind tab to proxy: ${proxy}`);
 
                 return new Promise((resolve, reject) => {
-                    // Set a timeout to reload the page if connection fails. This way we move onto the next solver proxy.
                     let timeout_id = setTimeout(() => {
-                        console.error("Proxy connection timed out after 5 seconds. Reloading...");
+                        console.error("Proxy connection timed out after 5 seconds.");
                         let pkt = new Uint8Array(5);
                         pkt[0] = 0;
                         pkt[1] = window.requester_id & 255;
