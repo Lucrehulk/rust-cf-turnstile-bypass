@@ -76,7 +76,7 @@
                 return new Promise((resolve, reject) => {
                     let timeout_id = setTimeout(() => {
                         console.error("Proxy connection timed out after 5 seconds.");
-                        window.token_server_socket.send(window.generate_fail_response_packet(pkt));
+                        window.token_server_socket.send(window.generate_fail_response_packet());
                     }, PROXY_CONNECT_TIMEOUT);
 
                     let proxy_listener = function(event) {
@@ -103,7 +103,7 @@
 
             document.addEventListener("keydown", async function (e) {
                 if (e.code == "KeyK") {
-                    window.token_server_socket.send(window.generate_fail_response_packet(pkt));
+                    window.token_server_socket.send(window.generate_fail_response_packet());
                     location.reload();
                 }
             });
