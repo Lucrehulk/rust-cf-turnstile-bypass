@@ -131,26 +131,6 @@ You'll need two key extensions.
 
 ---
 
-## Putting it all Together: the Entire Process
-
-After the user starts up the process, here's what happens:
-
-For each solver tab:
-
-1. The tab first connects to the token server.
-2. The tab sends the solver_idx request packet (u8<3>) to the server. 
-3. The token server sends back a unique solver_idx, with each request that is handled incrementing the solver_idx value (with modulo across the entire length of the list of course).
-4. Once the solver_idx is recieved, the solver tab attempts to use the firefox-proxy-extension to await and asynchronously connect to a proxy corresponding with the recieved solver_idx, and it also ensures all requests going through this proxy will go through a selected user-agent also based on your solver_idx.
-5. Once connected, an iframe containing the turnstile widget is loaded. 
-6. The tab does the work provided by the widget and completes it.
-7. If a checkbox challenge is found, the checkbox clicker clicks the checkbox to complete the challenge.
-8. Once the challenge is complete, and the token is recieved, the solver tab sends the result to the server (u8<0, ...solver_idx_bytes, ...token_bytes>). It forwards the solver_idx used and the token. 
-9. Upon completion the page reloads--restarting the process. 
-10. The token server, which has just recieved the token packet from the solver, forwards it to the reciever with the least tokens. Note, as already mentioned, *you'll* need to set up your reciever architecture. You can connect to the token server and send u8<1> to set up a reciever. From there, you'll of course build the system to do what you actually want with the recieved tokens. 
-
----
-
-
 ## Some Helpers for your Backend
 
 Your backend that actually gets and requests solves for tokens will need to interact with the token server. 
